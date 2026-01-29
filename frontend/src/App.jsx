@@ -11,6 +11,7 @@ import SuggestionsPage from './pages/SuggestionsPage';
 import ScriptGeneratorPage from './pages/ScriptGeneratorPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import SettingsPage from './pages/SettingsPage';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
   return (
@@ -19,13 +20,41 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/analysis" element={<AnalysisPage />} />
-        <Route path="/suggestions" element={<SuggestionsPage />} />
-        <Route path="/script-generator" element={<ScriptGeneratorPage />} />
-        <Route path="/subscription" element={<SubscriptionPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/analysis" element={
+          <ProtectedRoute>
+            <AnalysisPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/suggestions" element={
+          <ProtectedRoute>
+            <SuggestionsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/script-generator" element={
+          <ProtectedRoute>
+            <ScriptGeneratorPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/subscription" element={
+          <ProtectedRoute>
+            <SubscriptionPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </div>
   );
