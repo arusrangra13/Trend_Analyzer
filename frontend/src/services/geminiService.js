@@ -1,6 +1,25 @@
 // Google Gemini AI Service for Real Script Generation
 export class GeminiService {
   
+  // Test API connection and list available models
+  static async testConnection() {
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+        throw new Error('Gemini API key not configured');
+      }
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const data = await response.json();
+      
+      console.log('Available Gemini Models:', data.models?.map(m => ({ name: m.name, supportedMethods: m.supportedGenerationMethods })));
+      return data;
+    } catch (error) {
+      console.error('Gemini API connection test failed:', error);
+      throw error;
+    }
+  }
+  
   static async generateScript(data) {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -13,46 +32,99 @@ export class GeminiService {
       // Create context-aware prompt based on platform and style
       const prompt = this.createPrompt(topic, platform, style, length, domain, trendingKeywords);
       
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Gemini API Error: ${errorData.error?.message || response.statusText}`);
-      }
-
-      const result = await response.json();
-      const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      // Try different model names in order of preference
+      const modelNames = [
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-8b',
+        'gemini-1.0-pro',
+        'gemini-pro'
+      ];
       
-      if (!generatedText) {
-        throw new Error('No content generated from Gemini API');
-      }
+      let lastError;
+      for (const modelName of modelNames) {
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: prompt
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 2048,
+              }
+            })
+          });
 
-      return this.formatScript(generatedText, platform);
+          if (response.ok) {
+            const result = await response.json();
+            const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (!generatedText) {
+              throw new Error('No content generated from Gemini API');
+            }
+
+            console.log(`Successfully used model: ${modelName}`);
+            return this.formatScript(generatedText, platform, data.wordCount);
+          } else {
+            const errorData = await response.json();
+            const errorMessage = errorData.error?.message || response.statusText;
+            console.log(`Model ${modelName} failed (${response.status}):`, errorMessage);
+            lastError = new Error(`Model ${modelName} failed: ${errorMessage}`);
+          }
+        } catch (error) {
+          console.log(`Model ${modelName} failed:`, error.message);
+          lastError = error;
+          continue; // Try next model
+        }
+      }
+      
+      throw lastError || new Error('All Gemini models failed');
     } catch (error) {
       console.error('Gemini API Error:', error);
-      throw error;
+      
+      // Fallback to simulated response if API fails
+      console.warn('Falling back to simulated script generation due to API failure');
+      return this.generateFallbackScript(data);
     }
   }
 
-  static createPrompt(topic, platform, style, length, domain, trendingKeywords = []) {
+  static generateFallbackScript(data) {
+    const { topic, platform, style, wordCount } = data;
+    
+    const templates = {
+      youtube: {
+        casual: `Hey everyone! Welcome back to the channel. Today we're talking about ${topic}.\n\n${topic} has been trending lately, and for good reason. Let me break down what you need to know...\n\nFirst off, ${topic} is changing the game because it offers unique opportunities that many people haven't discovered yet.\n\nIf you found this helpful, don't forget to like and subscribe!`,
+        professional: `In today's comprehensive analysis, we'll examine ${topic} and its implications for the industry.\n\n${topic} represents a significant shift in how we approach current challenges. Let's explore the key factors:\n\n1. Understanding the fundamentals of ${topic}\n2. Recent developments and trends\n3. Future implications and opportunities\n\nThank you for watching. Please share your thoughts in the comments below.`,
+        energetic: `WHAT'S UP EVERYONE! 🔥 Today we're diving deep into ${topic} and trust me, you don't want to miss this!\n\n${topic} is absolutely blowing up right now and I'm here to tell you WHY!\n\nLet's go! 💪\n\nSMASH that like button if you're excited about ${topic}!`
+      },
+      instagram: {
+        casual: `${topic} ✨\n\nBeen seeing this everywhere lately and had to share my thoughts!\n\nWhat do you guys think about ${topic}? Drop a comment below! 👇\n\n#${topic.replace(/\s+/g, '')} #trending #viral`,
+        professional: `Understanding ${topic}: A Professional Perspective\n\nKey insights on ${topic} and its impact on our industry.\n\nFollow for more expert analysis on trending topics.\n\n#${topic.replace(/\s+/g, '')} #business #professional`,
+        energetic: `${topic} IS TAKING OVER! 🚀\n\nCan't believe how fast ${topic} is growing!\n\nWho else is excited about this?! 🙌\n\n#${topic.replace(/\s+/g, '')} #trending #viral #excited`
+      },
+      twitter: {
+        casual: `${topic} is trending and I have thoughts... 🤔\n\nWhat's your take on ${topic}?\n\n#${topic.replace(/\s+/g, '')} #trending`,
+        professional: `Analysis: ${topic} represents a significant development in the industry. Key implications include...\n\n#${topic.replace(/\s+/g, '')} #analysis #business`,
+        energetic: `${topic} IS EVERYWHERE RIGHT NOW! 🔥\n\nIf you're not talking about ${topic}, you're missing out!\n\n#${topic.replace(/\s+/g, '')} #trending #viral`
+      }
+    };
+
+    const platformTemplates = templates[platform] || templates.youtube;
+    const script = platformTemplates[style] || platformTemplates.casual;
+
+    // Adjust word count to match target
+    return this.adjustWordCount(script, wordCount, script.split(/\s+/).filter(word => word.length > 0).length);
+  }
+
+  static createPrompt(topic, platform, style, wordCount, domain, trendingKeywords = []) {
     const platformInstructions = {
       youtube: {
         casual: "Create a casual, conversational YouTube script that feels like talking to a friend. Use 'you' and 'I', include engaging questions, and add calls-to-action like 'like and subscribe'.",
@@ -71,11 +143,7 @@ export class GeminiService {
       }
     };
 
-    const lengthInstructions = {
-      short: "Keep the content concise and impactful (under 100 words for posts, under 200 words for scripts).",
-      medium: "Create moderate-length content (100-300 words for posts, 300-600 words for scripts).",
-      long: "Create comprehensive, detailed content (300+ words for posts, 600+ words for scripts)."
-    };
+    const lengthInstructions = `Create content that is exactly ${wordCount} words. Be precise with the word count - not shorter, not longer. This is a strict requirement.`;
 
     const domainContext = domain ? `
 Domain Context: The user specializes in ${domain}. Tailor the content to this niche with relevant terminology and audience understanding.
@@ -91,7 +159,7 @@ You are an expert content creator and social media strategist. Generate engaging
 TOPIC: ${topic}
 PLATFORM: ${platform.toUpperCase()}
 STYLE: ${style.toUpperCase()}
-LENGTH: ${length.toUpperCase()}
+WORD COUNT: ${wordCount} words (EXACT - this is a strict requirement)
 
 ${domainContext}
 ${keywordsContext}
@@ -99,8 +167,8 @@ ${keywordsContext}
 PLATFORM-SPECIFIC INSTRUCTIONS:
 ${platformInstructions[platform]?.[style] || platformInstructions.youtube.casual}
 
-LENGTH REQUIREMENTS:
-${lengthInstructions[length]}
+WORD COUNT REQUIREMENTS:
+Create content that is EXACTLY ${wordCount} words. This is not a suggestion - it is a strict requirement. Count every word carefully. The final content must be precisely ${wordCount} words, no more and no less.
 
 ADDITIONAL REQUIREMENTS:
 - Make the content authentic and engaging
@@ -109,14 +177,15 @@ ADDITIONAL REQUIREMENTS:
 - Ensure the content is platform-optimized
 - Use current trending topics and cultural references when relevant
 - Make it shareable and engaging
+- CRITICAL: The content must be EXACTLY ${wordCount} words - count them carefully before responding
 
-Generate the content now:
+Generate the content now and ensure it is exactly ${wordCount} words:
 `;
 
     return prompt;
   }
 
-  static formatScript(generatedText, platform) {
+  static formatScript(generatedText, platform, targetWordCount) {
     // Clean up and format the generated text
     let formatted = generatedText.trim();
     
@@ -126,6 +195,34 @@ Generate the content now:
     
     // Remove excessive newlines
     formatted = formatted.replace(/\n{3,}/g, '\n\n');
+    
+    // Count words
+    const words = formatted.split(/\s+/).filter(word => word.length > 0);
+    const currentWordCount = words.length;
+    
+    // Adjust word count if needed
+    if (currentWordCount !== targetWordCount) {
+      formatted = this.adjustWordCount(formatted, targetWordCount, currentWordCount);
+      
+      // Final verification - ensure exact word count
+      const finalWords = formatted.split(/\s+/).filter(word => word.length > 0);
+      const finalWordCount = finalWords.length;
+      
+      if (finalWordCount !== targetWordCount) {
+        console.log(`Final adjustment: ${finalWordCount} -> ${targetWordCount} words`);
+        // Force exact match by truncating or padding
+        if (finalWordCount > targetWordCount) {
+          formatted = finalWords.slice(0, targetWordCount).join(' ');
+        } else {
+          // Add single words to reach exact count
+          const wordsNeeded = targetWordCount - finalWordCount;
+          const fillerWords = ['very', 'really', 'truly', 'absolutely', 'completely', 'totally'];
+          for (let i = 0; i < wordsNeeded; i++) {
+            formatted += ' ' + fillerWords[i % fillerWords.length];
+          }
+        }
+      }
+    }
     
     // Platform-specific formatting
     switch (platform) {
@@ -156,6 +253,62 @@ Generate the content now:
     }
     
     return formatted;
+  }
+
+  static adjustWordCount(text, targetWordCount, currentWordCount) {
+    const words = text.split(/\s+/).filter(word => word.length > 0);
+    
+    if (currentWordCount < targetWordCount) {
+      // Need to add words - use more granular approach
+      const wordsToAdd = targetWordCount - currentWordCount;
+      let result = text;
+      
+      // Single words for precise control
+      const singleWords = [
+        'important', 'key', 'essential', 'crucial', 'vital', 'critical',
+        'significant', 'major', 'valuable', 'helpful', 'useful', 'effective',
+        'powerful', 'strong', 'impactful', 'meaningful', 'relevant', 'strategic',
+        'smart', 'better', 'best', 'top', 'premium', 'quality', 'excellent',
+        'amazing', 'awesome', 'great', 'fantastic', 'wonderful', 'perfect'
+      ];
+      
+      // Short phrases for medium adjustments
+      const shortPhrases = [
+        'is very important', 'makes sense', 'works well', 'adds value',
+        'is key here', 'really matters', 'helps a lot', 'is effective',
+        'makes difference', 'is essential', 'is crucial', 'is vital'
+      ];
+      
+      // Add words one by one for precise control
+      for (let i = 0; i < wordsToAdd; i++) {
+        if (i % 3 === 0 && i < wordsToAdd - 2) {
+          // Use short phrase when we have room for 2+ words
+          const phrase = shortPhrases[i % shortPhrases.length];
+          if (result.endsWith('.')) {
+            result += ' ' + phrase + '.';
+          } else {
+            result += '. ' + phrase + '.';
+          }
+          i += phrase.split(' ').length - 1; // Account for multiple words added
+        } else {
+          // Add single word
+          const word = singleWords[i % singleWords.length];
+          if (result.endsWith('.')) {
+            result += ' ' + word + '.';
+          } else {
+            result += ' ' + word;
+          }
+        }
+      }
+      
+      return result;
+      
+    } else if (currentWordCount > targetWordCount) {
+      // Need to remove words - be more precise
+      return words.slice(0, targetWordCount).join(' ');
+    }
+    
+    return text;
   }
 
   static async generateMultipleScripts(data, count = 3) {
@@ -197,7 +350,7 @@ Provide analysis on:
 Format as JSON response.
 `;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

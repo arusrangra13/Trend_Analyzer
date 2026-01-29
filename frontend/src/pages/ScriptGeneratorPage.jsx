@@ -33,6 +33,7 @@ export default function ScriptGeneratorPage() {
     platform: 'youtube',
     style: 'casual',
     length: 'medium',
+    wordCount: 100,
     keywords: []
   });
   const [generatedScript, setGeneratedScript] = useState('');
@@ -67,10 +68,12 @@ export default function ScriptGeneratorPage() {
       
       // Extract domain and keywords for better AI generation
       if (trends?.domain) {
+        const prompt = createPrompt(scriptData.topic, scriptData.platform, scriptData.style, scriptData.wordCount, trends.domain, trends.keywords?.slice(0, 5).map(k => k.keyword) || []);
         setScriptData(prev => ({ 
           ...prev, 
           domain: trends.domain,
-          trendingKeywords: trends.keywords?.slice(0, 5).map(k => k.keyword) || []
+          trendingKeywords: trends.keywords?.slice(0, 5).map(k => k.keyword) || [],
+          prompt: prompt
         }));
       }
     } catch (error) {
@@ -301,22 +304,36 @@ export default function ScriptGeneratorPage() {
               </div>
             </div>
 
-            {/* Length Selection */}
+            {/* Word Count Selection */}
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-primary)', fontWeight: '500' }}>
-                Length
+                Word Count: <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>{scriptData.wordCount} words</span>
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                {['short', 'medium', 'long'].map(length => (
-                  <button
-                    key={length}
-                    onClick={() => setScriptData(prev => ({ ...prev, length }))}
-                    className={`btn ${scriptData.length === length ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '0.5rem', fontSize: '0.875rem' }}
-                  >
-                    {length.charAt(0).toUpperCase() + length.slice(1)}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>10</span>
+                <input
+                  type="range"
+                  min="10"
+                  max="500"
+                  value={scriptData.wordCount}
+                  onChange={(e) => setScriptData(prev => ({ ...prev, wordCount: parseInt(e.target.value) }))}
+                  style={{
+                    flex: 1,
+                    height: '6px',
+                    borderRadius: '3px',
+                    background: 'var(--border-color)',
+                    outline: 'none',
+                    WebkitAppearance: 'none'
+                  }}
+                />
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>500</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                <span>Tweet</span>
+                <span>Short Post</span>
+                <span>Medium Post</span>
+                <span>Long Post</span>
+                <span>Article</span>
               </div>
             </div>
 
@@ -378,6 +395,20 @@ export default function ScriptGeneratorPage() {
                   lineHeight: '1.6'
                 }}>
                   {generatedScript}
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '1rem',
+                  padding: '0.5rem',
+                  background: 'var(--background-light)',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <span>Word Count: <strong>{generatedScript.split(/\s+/).filter(word => word.length > 0).length}</strong> words</span>
+                  <span>Target: <strong>{scriptData.wordCount}</strong> words</span>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
