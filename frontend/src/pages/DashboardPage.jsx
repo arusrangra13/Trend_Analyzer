@@ -80,9 +80,9 @@ export default function DashboardPage() {
           </div>
           <div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Total Views Analysis</p>
-            <h3 style={{ fontSize: '1.5rem', margin: 0 }}>2.4M</h3>
+            <h3 style={{ fontSize: '1.5rem', margin: 0 }}>{metrics.totalViews}</h3>
             <span style={{ color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <ArrowUpRight size={12} /> +14% vs last week
+              <ArrowUpRight size={12} /> {metrics.growthRate} vs last week
             </span>
           </div>
         </div>
@@ -105,10 +105,10 @@ export default function DashboardPage() {
             <Users size={24} />
           </div>
           <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Competitors Tracked</p>
-            <h3 style={{ fontSize: '1.5rem', margin: 0 }}>12</h3>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-              2 new detected
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Total Followers</p>
+            <h3 style={{ fontSize: '1.5rem', margin: 0 }}>{metrics.totalFollowers}</h3>
+            <span style={{ color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <ArrowUpRight size={12} /> Across all platforms
             </span>
           </div>
         </div>
