@@ -55,6 +55,7 @@ function App() {
             <SettingsPage />
           </ProtectedRoute>
         } />
+        
       </Routes>
     </div>
   );

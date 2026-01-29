@@ -1,10 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
+import SocialMediaAnalytics from '../components/dashboard/SocialMediaAnalytics';
+import { SocialMediaService } from '../services/socialMediaService';
 import { TrendingUp, Users, FileText, ArrowUpRight } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth0();
+  const [socialData, setSocialData] = useState([]);
+  const [metrics, setMetrics] = useState({
+    totalViews: '2.4M',
+    totalFollowers: '125K',
+    totalPosts: '48',
+    growthRate: '+14%'
+  });
+
+  // Load social media data and calculate metrics
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        // Load profile data and sync
+        const profileData = localStorage.getItem('userProfileData');
+        if (profileData) {
+          const parsedProfile = JSON.parse(profileData);
+          const syncedData = await SocialMediaService.syncProfileWithSocialData(parsedProfile);
+          setSocialData(syncedData);
+          
+          // Calculate real metrics
+          const formattedMetrics = SocialMediaService.getFormattedMetrics(syncedData);
+          setMetrics({
+            totalViews: formattedMetrics.totalViews || '2.4M',
+            totalFollowers: formattedMetrics.totalFollowers || '125K',
+            totalPosts: formattedMetrics.totalPosts || '48',
+            growthRate: formattedMetrics.growthRate || '+14%'
+          });
+        } else {
+          // Fallback to existing social media data
+          const existingData = SocialMediaService.loadSocialData();
+          if (existingData.length > 0) {
+            setSocialData(existingData);
+            const formattedMetrics = SocialMediaService.getFormattedMetrics(existingData);
+            setMetrics({
+              totalViews: formattedMetrics.totalViews || '2.4M',
+              totalFollowers: formattedMetrics.totalFollowers || '125K',
+              totalPosts: formattedMetrics.totalPosts || '48',
+              growthRate: formattedMetrics.growthRate || '+14%'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading metrics:', error);
+      }
+    };
+
+    loadMetrics();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -64,7 +114,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Recent Activity</h2>
+      {/* Social Media Analytics Section */}
+      <SocialMediaAnalytics />
+
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', marginTop: '2rem' }}>Recent Activity</h2>
       <div className="recent-activity">
         {[1, 2, 3].map((i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 0', borderBottom: i !== 3 ? '1px solid var(--border-color)' : 'none' }}>

@@ -1,9 +1,11 @@
 import React from 'react';
+import DashboardLayout from '../components/dashboard/DashboardLayout';
+import ProfileCard from '../components/dashboard/ProfileCard';
 
 export default function ProfilePage() {
   return (
-    <div className="page-container">
-      <h1>ProfilePage</h1>
-    </div>
+    <DashboardLayout>
+      <ProfileCard />
+    </DashboardLayout>
   );
 }
