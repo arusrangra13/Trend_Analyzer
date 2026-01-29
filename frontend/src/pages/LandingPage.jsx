@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { 
   TrendingUp, 
   Users, 
@@ -11,9 +12,36 @@ import {
   Star
 } from 'lucide-react';
 import Navbar from '../components/common/Navbar';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import '../assets/styles/landing.css';
 
 export default function LandingPage() {
+  const { loginWithRedirect } = useAuth0();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  const handleLogin = async () => {
+    setIsAuthenticating(true);
+    try {
+      await loginWithRedirect({
+        screen_hint: 'login'
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    setIsAuthenticating(true);
+    try {
+      await loginWithRedirect({
+        screen_hint: 'signup'
+      });
+    } catch (error) {
+      console.error('Signup error:', error);
+      setIsAuthenticating(false);
+    }
+  };
   return (
     <div className="landing-page">
       <Navbar />
@@ -33,10 +61,30 @@ export default function LandingPage() {
             spot rising trends, and generate high-performing scripts in seconds.
           </p>
           <div className="hero-cta-group">
-            <Link to="/register" className="btn btn-primary">
-              Start Free Trial <ArrowRight size={20} />
-            </Link>
-            <button className="btn btn-secondary">
+            <button 
+              onClick={handleSignup} 
+              className="btn btn-primary"
+              disabled={isAuthenticating}
+              style={{ 
+                opacity: isAuthenticating ? 0.7 : 1,
+                cursor: isAuthenticating ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              {isAuthenticating ? (
+                <>
+                  <LoadingSpinner size="small" text="" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  Start Free Trial <ArrowRight size={20} />
+                </>
+              )}
+            </button>
+            <button className="btn btn-secondary" disabled={isAuthenticating}>
               <PlayCircle size={20} /> Watch Demo
             </button>
           </div>
@@ -164,6 +212,71 @@ export default function LandingPage() {
               </p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="cta-section" style={{ 
+        padding: '4rem 2rem', 
+        background: 'var(--primary-color)', 
+        textAlign: 'center',
+        color: 'white'
+      }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
+            Ready to go viral?
+          </h2>
+          <p style={{ fontSize: '1.2rem', marginBottom: '2rem', opacity: 0.9 }}>
+            Join thousands of creators who are already using AI to predict trends and generate viral content.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={handleSignup}
+              disabled={isAuthenticating}
+              style={{
+                padding: '1rem 2rem',
+                background: 'white',
+                color: 'var(--primary-color)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                cursor: isAuthenticating ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                opacity: isAuthenticating ? 0.7 : 1
+              }}
+            >
+              {isAuthenticating ? (
+                <>
+                  <LoadingSpinner size="small" text="" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  Start Free Trial <ArrowRight size={20} />
+                </>
+              )}
+            </button>
+            <button 
+              onClick={handleLogin}
+              disabled={isAuthenticating}
+              style={{
+                padding: '1rem 2rem',
+                background: 'transparent',
+                color: 'white',
+                border: '2px solid white',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                cursor: isAuthenticating ? 'not-allowed' : 'pointer',
+                opacity: isAuthenticating ? 0.7 : 1
+              }}
+            >
+              {isAuthenticating ? 'Connecting...' : 'Login to Account'}
+            </button>
+          </div>
         </div>
       </section>
 

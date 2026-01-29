@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { User, Edit2, Save, X, Youtube, Instagram, Twitter, Globe, Link2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Edit2, Save, X, Youtube, Instagram, Twitter, Globe, Link2, Crown, Star, Shield } from 'lucide-react';
 import { SocialMediaService } from '../../services/socialMediaService';
+import { SubscriptionService } from '../../services/subscriptionService';
 
 export default function ProfileCard() {
   const [isEditing, setIsEditing] = useState(false);
+  const [subscription, setSubscription] = useState(null);
   
   // Load data from localStorage on initial render
   const [profileData, setProfileData] = useState(() => {
@@ -30,6 +32,15 @@ export default function ProfileCard() {
   });
 
   const [tempData, setTempData] = useState({ ...profileData });
+
+  useEffect(() => {
+    const loadSubscription = () => {
+      const currentSubscription = SubscriptionService.getCurrentSubscription();
+      setSubscription(currentSubscription);
+    };
+
+    loadSubscription();
+  }, []);
 
   const handleEdit = () => {
     setTempData({ ...profileData });
@@ -95,7 +106,7 @@ export default function ProfileCard() {
       position: 'relative'
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
             width: '48px',
@@ -110,27 +121,90 @@ export default function ProfileCard() {
             <User size={24} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={tempData.name.value}
-                  onChange={(e) => handleChange('name', { ...tempData.name, value: e.target.value })}
-                  placeholder={tempData.name.placeholder}
-                  style={{
-                    background: 'var(--background-color)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    padding: '0.5rem',
-                    fontSize: '1.25rem',
-                    color: 'var(--text-primary)',
-                    width: '200px'
-                  }}
-                />
-              ) : (
-                profileData.name.value || profileData.name.placeholder
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={tempData.name.value}
+                    onChange={(e) => handleChange('name', { ...tempData.name, value: e.target.value })}
+                    placeholder={tempData.name.placeholder}
+                    style={{
+                      background: 'var(--background-color)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      padding: '0.5rem',
+                      fontSize: '1.25rem',
+                      color: 'var(--text-primary)',
+                      width: '200px'
+                    }}
+                  />
+                ) : (
+                  profileData.name.value || profileData.name.placeholder
+                )}
+              </h3>
+              
+              {/* Subscription Badge */}
+              {subscription && (
+                <div style={{
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  textTransform: 'uppercase'
+                }}>
+                  {subscription.plan === 'advance' ? (
+                    <div style={{
+                      background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      <Crown size={12} />
+                      ADVANCE
+                    </div>
+                  ) : subscription.plan === 'pro' ? (
+                    <div style={{
+                      background: '#f59e0b',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      <Star size={12} />
+                      PRO
+                    </div>
+                  ) : (
+                    <div style={{
+                      background: 'var(--border-color)',
+                      color: 'var(--text-secondary)',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      <Shield size={12} />
+                      FREE
+                    </div>
+                  )}
+                </div>
               )}
-            </h3>
+            </div>
             <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               Profile Settings
             </p>
@@ -169,6 +243,52 @@ export default function ProfileCard() {
           )}
         </div>
       </div>
+
+      {/* Subscription Info */}
+      {subscription && (
+        <div style={{
+          background: 'var(--background-color)',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+              Subscription Details
+            </h4>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem' }}>
+            <div>
+              <span style={{ color: 'var(--text-secondary)' }}>Plan: </span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 'bold', textTransform: 'capitalize' }}>
+                {subscription.plan}
+              </span>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-secondary)' }}>Scripts: </span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 'bold' }}>
+                {subscription.scriptsRemaining}/{subscription.scriptsIncluded}
+              </span>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-secondary)' }}>Status: </span>
+              <span style={{ 
+                color: subscription.status === 'active' ? '#10b981' : '#ef4444', 
+                fontWeight: 'bold',
+                textTransform: 'capitalize'
+              }}>
+                {subscription.status}
+              </span>
+            </div>
+          </div>
+          {subscription.expiresAt && (
+            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Expires: {new Date(subscription.expiresAt).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Basic Detail */}
       <div style={{ marginBottom: '1.5rem' }}>

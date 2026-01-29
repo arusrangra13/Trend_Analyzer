@@ -23,7 +23,8 @@ import {
   Target,
   Clock,
   Eye,
-  Sparkles
+  Sparkles,
+  Zap
 } from 'lucide-react';
 
 export default function ScriptGeneratorPage() {
@@ -72,7 +73,7 @@ export default function ScriptGeneratorPage() {
       
       // Extract domain and keywords for better AI generation
       if (trends?.domain) {
-        const prompt = createPrompt(scriptData.topic, scriptData.platform, scriptData.style, scriptData.wordCount, trends.domain, trends.keywords?.slice(0, 5).map(k => k.keyword) || []);
+        const prompt = GeminiService.createPrompt(scriptData.topic, scriptData.platform, scriptData.style, scriptData.wordCount, trends.domain, trends.keywords?.slice(0, 5).map(k => k.keyword) || []);
         setScriptData(prev => ({ 
           ...prev, 
           domain: trends.domain,
@@ -367,7 +368,7 @@ export default function ScriptGeneratorPage() {
                 </>
               ) : (
                 <>
-                  <Brain size={18} />
+                  <Zap size={18} />
                   Generate Script ({subscription.scriptsRemaining} left)
                 </>
               )}
@@ -459,7 +460,7 @@ export default function ScriptGeneratorPage() {
               color: 'white'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <Brain size={20} />
+                <Zap size={20} />
                 <span style={{ fontWeight: 'bold' }}>Powered by Google Gemini AI</span>
               </div>
               <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.9 }}>

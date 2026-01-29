@@ -184,34 +184,40 @@ export class TrendService {
   }
 
   // Generate content suggestions based on trends and domain
-  static generateContentSuggestions(domain, trends, keywords) {
+  static generateContentSuggestions(domain, trends = [], keywords = []) {
     const suggestions = [];
 
-    // Trend-based suggestions
-    trends.forEach(trend => {
-      suggestions.push({
-        type: 'trending',
-        title: `Create content about "${trend.name}"`,
-        description: `This topic is trending with ${trend.growth} growth and ${trend.volume} mentions`,
-        urgency: trend.growth.includes('+') ? 'high' : 'medium',
-        keywords: trend.keywords,
-        estimatedReach: Math.floor(parseInt(trend.volume) * 2.5)
-      });
-    });
-
-    // Keyword-based suggestions
-    keywords.slice(0, 5).forEach(keyword => {
-      if (keyword.viral) {
+    // Ensure trends is an array before using forEach
+    if (Array.isArray(trends)) {
+      // Trend-based suggestions
+      trends.forEach(trend => {
         suggestions.push({
-          type: 'viral',
-          title: `Target viral keyword: "${keyword.keyword}"`,
-          description: `High viral potential with ${keyword.volume} monthly searches`,
-          urgency: 'high',
-          keywords: [keyword.keyword],
-          estimatedReach: keyword.volume * 3
+          type: 'trending',
+          title: `Create content about "${trend.name}"`,
+          description: `This topic is trending with ${trend.growth} growth and ${trend.volume} mentions`,
+          urgency: trend.growth && trend.growth.includes('+') ? 'high' : 'medium',
+          keywords: trend.keywords || [],
+          estimatedReach: Math.floor(parseInt(trend.volume || 0) * 2.5)
         });
-      }
-    });
+      });
+    }
+
+    // Ensure keywords is an array before using forEach
+    if (Array.isArray(keywords)) {
+      // Keyword-based suggestions
+      keywords.slice(0, 5).forEach(keyword => {
+        if (keyword && keyword.viral) {
+          suggestions.push({
+            type: 'viral',
+            title: `Target viral keyword: "${keyword.keyword}"`,
+            description: `High viral potential with ${keyword.volume} monthly searches`,
+            urgency: 'high',
+            keywords: [keyword.keyword],
+            estimatedReach: (keyword.volume || 0) * 3
+          });
+        }
+      });
+    }
 
     // Domain-specific suggestions
     const domainSuggestions = {
@@ -233,16 +239,18 @@ export class TrendService {
     };
 
     const domainSpecific = domainSuggestions[domain] || domainSuggestions.lifestyle;
-    domainSpecific.forEach((suggestion, index) => {
-      suggestions.push({
-        type: 'domain',
-        title: suggestion,
-        description: `Perfect for your ${domain} niche audience`,
-        urgency: 'medium',
-        keywords: keywords.slice(index, index + 3).map(k => k.keyword),
-        estimatedReach: Math.floor(Math.random() * 50000) + 10000
+    if (Array.isArray(domainSpecific)) {
+      domainSpecific.forEach((suggestion, index) => {
+        suggestions.push({
+          type: 'domain',
+          title: suggestion,
+          description: `Perfect for your ${domain || 'lifestyle'} niche audience`,
+          urgency: 'medium',
+          keywords: (keywords || []).slice(index, index + 3).map(k => k.keyword),
+          estimatedReach: Math.floor(Math.random() * 50000) + 10000
+        });
       });
-    });
+    }
 
     return suggestions.sort((a, b) => {
       const urgencyOrder = { high: 3, medium: 2, low: 1 };
