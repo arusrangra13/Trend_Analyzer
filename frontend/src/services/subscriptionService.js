@@ -1,30 +1,81 @@
 // Subscription and Script Usage Management Service
+import UserStorageService from './userStorageService';
+
 export class SubscriptionService {
   
-  // Get current subscription
-  static getCurrentSubscription() {
-    const subscription = localStorage.getItem('userSubscription');
-    if (!subscription) return null;
-    
-    const parsed = JSON.parse(subscription);
-    
-    // Check if subscription is expired
-    if (new Date(parsed.endDate) < new Date()) {
-      this.clearSubscription();
+  // Get current subscription (user-specific)
+  static getCurrentSubscription(userId = null) {
+    try {
+      // Try user-specific storage first
+      const subscription = UserStorageService.getItem('subscriptionData', userId);
+      if (subscription) {
+        const parsed = JSON.parse(subscription);
+        
+        // Check if subscription is expired
+        if (parsed.expiresAt && new Date(parsed.expiresAt) < new Date()) {
+          this.clearSubscription(userId);
+          return null;
+        }
+        
+        return parsed;
+      }
+      
+      // Fallback to old format for migration
+      const oldSubscription = localStorage.getItem('userSubscription');
+      if (oldSubscription) {
+        const parsed = JSON.parse(oldSubscription);
+        
+        // Check if subscription is expired
+        if (new Date(parsed.endDate) < new Date()) {
+          this.clearSubscription(userId);
+          return null;
+        }
+        
+        // Migrate to user-specific storage
+        if (userId) {
+          UserStorageService.setItem('subscriptionData', oldSubscription, userId);
+          localStorage.removeItem('userSubscription');
+        }
+        
+        return parsed;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting subscription:', error);
       return null;
     }
-    
-    return parsed;
   }
 
-  // Save subscription
-  static saveSubscription(subscription) {
-    localStorage.setItem('userSubscription', JSON.stringify(subscription));
+  // Save subscription (user-specific)
+  static saveSubscription(subscription, userId = null) {
+    try {
+      if (userId) {
+        UserStorageService.setItem('subscriptionData', JSON.stringify(subscription), userId);
+      } else {
+        // Fallback to old format
+        localStorage.setItem('userSubscription', JSON.stringify(subscription));
+      }
+      return true;
+    } catch (error) {
+      console.error('Error saving subscription:', error);
+      return false;
+    }
   }
 
-  // Clear subscription
-  static clearSubscription() {
-    localStorage.removeItem('userSubscription');
+  // Clear subscription (user-specific)
+  static clearSubscription(userId = null) {
+    try {
+      if (userId) {
+        UserStorageService.removeItem('subscriptionData', userId);
+      }
+      // Also clear old format
+      localStorage.removeItem('userSubscription');
+      return true;
+    } catch (error) {
+      console.error('Error clearing subscription:', error);
+      return false;
+    }
   }
 
   // Check if user can generate script

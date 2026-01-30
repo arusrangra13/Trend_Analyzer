@@ -6,6 +6,7 @@ import './index.css'
 import './assets/styles/global.css'
 
 import { Auth0Provider } from '@auth0/auth0-react'
+import { UserProvider } from './contexts/UserContext.jsx'
 
 const domain = import.meta.env.VITE_AUTH0_DOMAIN;
 const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
@@ -25,9 +26,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       cacheLocation="localstorage"
       useRefreshTokens={true}
     >
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <UserProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </UserProvider>
     </Auth0Provider>
   </React.StrictMode>,
 )

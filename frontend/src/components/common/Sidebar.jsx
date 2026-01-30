@@ -1,80 +1,85 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import { 
-  LayoutDashboard, 
-  User, 
-  BarChart2, 
-  Lightbulb, 
+  Home, 
+  TrendingUp, 
   FileText, 
-  CreditCard, 
+  BarChart3, 
   Settings, 
-  LogOut,
-  TrendingUp
+  User, 
+  CreditCard,
+  LogOut
 } from 'lucide-react';
 
 export default function Sidebar() {
-  const { logout, user } = useAuth0();
+  const location = useLocation();
+  const { logout } = useAuth0();
 
-  const navItems = [
-    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-    { name: 'Analysis', icon: <BarChart2 size={20} />, path: '/analysis' },
-    { name: 'Suggestions', icon: <Lightbulb size={20} />, path: '/suggestions' },
-    { name: 'Script Generator', icon: <FileText size={20} />, path: '/script-generator' },
-    { name: 'Profile', icon: <User size={20} />, path: '/profile' },
-    { name: 'Subscription', icon: <CreditCard size={20} />, path: '/subscription' },
-    { name: 'Settings', icon: <Settings size={20} />, path: '/settings' },
+  const menuItems = [
+    { path: '/dashboard', icon: Home, label: 'Dashboard' },
+    { path: '/script-generator', icon: FileText, label: 'Script Generator' },
+    { path: '/suggestions', icon: TrendingUp, label: 'Suggestions' },
+    { path: '/analysis', icon: BarChart3, label: 'Analysis' },
+    { path: '/subscription', icon: CreditCard, label: 'Subscription' },
+    { path: '/profile', icon: User, label: 'Profile' },
+    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
+  const isActive = (path) => location.pathname === path;
+
   return (
-    <aside className="sidebar">
+    <div className="sidebar">
       <div className="sidebar-header">
-        <Link to="/dashboard" className="nav-logo" style={{ textDecoration: 'none', color: 'white' }}>
-          <div style={{ background: 'var(--primary-color)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-            <TrendingUp size={20} color="white" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ 
+            background: 'var(--primary-color)', 
+            padding: '0.5rem', 
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <TrendingUp size={24} color="white" />
           </div>
-          <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>FlowAI</span>
-        </Link>
+          <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+            Flow<span style={{ color: 'var(--primary-color)' }}>AI</span>
+          </span>
+        </div>
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <NavLink 
-            key={item.path} 
-            to={item.path} 
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
-            {item.icon}
-            <span>{item.name}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="sidebar-footer">
-        {user && (
-          <div className="user-profile-preview">
-            <img 
-              src={user.picture} 
-              alt={user.name} 
-              className="user-avatar-small" 
-              style={{ objectFit: 'cover' }}
-            />
-            <div style={{ overflow: 'hidden' }}>
-              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</p>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</p>
-            </div>
-          </div>
-        )}
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
+            >
+              <Icon size={20} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
         
+        {/* Logout Button */}
         <button 
           onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
           className="nav-item" 
-          style={{ width: '100%', marginTop: '1rem', border: 'none', background: 'transparent' }}
+          style={{ 
+            width: '100%', 
+            marginTop: '1rem', 
+            border: 'none', 
+            background: 'transparent',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer'
+          }}
         >
           <LogOut size={20} />
-          <span>Log Out</span>
+          <span>Logout</span>
         </button>
-      </div>
-    </aside>
+      </nav>
+    </div>
   );
 }

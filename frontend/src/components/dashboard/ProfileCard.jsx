@@ -1,22 +1,50 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { User, Edit2, Save, X, Youtube, Instagram, Twitter, Globe, Link2, Crown, Star, Shield } from 'lucide-react';
 import { SocialMediaService } from '../../services/socialMediaService';
 import { SubscriptionService } from '../../services/subscriptionService';
+import BackendService from '../../services/backendService';
+import UserStorageService from '../../services/userStorageService';
 
 export default function ProfileCard() {
+  const { user, getAccessTokenSilently, isAuthenticated } = useAuth0();
   const [isEditing, setIsEditing] = useState(false);
   const [subscription, setSubscription] = useState(null);
+  const [loading, setLoading] = useState(false);
   
-  // Load data from localStorage on initial render
+  // Load data from user-specific localStorage on initial render
   const [profileData, setProfileData] = useState(() => {
-    const savedData = localStorage.getItem('userProfileData');
-    if (savedData) {
-      try {
-        return JSON.parse(savedData);
-      } catch (error) {
-        console.error('Error parsing saved profile data:', error);
+    if (isAuthenticated && user) {
+      // Set current user ID for storage service
+      UserStorageService.setCurrentUserId(user.sub);
+      
+      // Get user-specific profile data
+      const savedData = UserStorageService.getItem('userProfileData');
+      if (savedData) {
+        try {
+          return JSON.parse(savedData);
+        } catch (error) {
+          console.error('Error parsing saved profile data:', error);
+        }
       }
     }
+    
+    // Fallback to old format for migration
+    const oldData = localStorage.getItem('userProfileData');
+    if (oldData) {
+      try {
+        const parsed = JSON.parse(oldData);
+        // Migrate to user-specific storage
+        if (isAuthenticated && user) {
+          UserStorageService.setItem('userProfileData', oldData);
+          localStorage.removeItem('userProfileData');
+        }
+        return parsed;
+      } catch (error) {
+        console.error('Error parsing old profile data:', error);
+      }
+    }
+    
     return {
       name: {
         value: '',
@@ -35,45 +63,95 @@ export default function ProfileCard() {
 
   useEffect(() => {
     const loadSubscription = () => {
-      const currentSubscription = SubscriptionService.getCurrentSubscription();
-      setSubscription(currentSubscription);
+      // Load user-specific subscription data
+      if (isAuthenticated && user) {
+        const subscriptionData = UserStorageService.getItem('subscriptionData');
+        if (subscriptionData) {
+          try {
+            const parsed = JSON.parse(subscriptionData);
+            setSubscription(parsed);
+          } catch (error) {
+            console.error('Error parsing subscription data:', error);
+            // Fallback to SubscriptionService
+            const currentSubscription = SubscriptionService.getCurrentSubscription();
+            setSubscription(currentSubscription);
+          }
+        } else {
+          // Fallback to SubscriptionService
+          const currentSubscription = SubscriptionService.getCurrentSubscription();
+          setSubscription(currentSubscription);
+        }
+      } else {
+        // Fallback to SubscriptionService for non-authenticated users
+        const currentSubscription = SubscriptionService.getCurrentSubscription();
+        setSubscription(currentSubscription);
+      }
+    };
+
+    const loadProfileFromBackend = async () => {
+      if (user && isAuthenticated) {
+        try {
+          const token = await getAccessTokenSilently();
+          const backendProfile = await BackendService.safeGetUserProfile(token);
+          
+          if (backendProfile) {
+            // Update local state with backend data
+            setProfileData(backendProfile.profileData || profileData);
+            setSubscription(backendProfile.subscription || subscription);
+          }
+        } catch (error) {
+          console.log('Backend not available, using localStorage');
+        }
+      }
     };
 
     loadSubscription();
-  }, []);
+    loadProfileFromBackend();
+  }, [user, isAuthenticated, getAccessTokenSilently]);
 
   const handleEdit = () => {
     setTempData({ ...profileData });
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Basic validation
     if (!tempData.name.value.trim()) {
       alert('Name is required');
       return;
     }
 
-    // Validate URLs if provided
-    const urlFields = ['youtubeLink', 'instagramLink', 'twitterLink', 'otherLink'];
-    for (const field of urlFields) {
-      if (tempData[field] && !isValidUrl(tempData[field])) {
-        const fieldName = field.replace('Link', '').replace(/([A-Z])/g, ' $1').trim();
-        alert(`Please enter a valid URL for ${fieldName}`);
-        return;
+    setLoading(true);
+    
+    try {
+      // Save to user-specific localStorage (new functionality)
+      const profileDataString = JSON.stringify(tempData);
+      if (isAuthenticated && user) {
+        UserStorageService.setItem('userProfileData', profileDataString);
+      } else {
+        // Fallback to regular localStorage for non-authenticated users
+        localStorage.setItem('userProfileData', profileDataString);
       }
-    }
+      
+      setProfileData(tempData);
+      setIsEditing(false);
 
-    // Save to state
-    setProfileData({ ...tempData });
-    
-    // Save to localStorage for persistence
-    localStorage.setItem('userProfileData', JSON.stringify(tempData));
-    
-    // Sync with social media analytics
-    SocialMediaService.syncProfileWithSocialData(tempData);
-    
-    setIsEditing(false);
+      // Try to save to backend (new functionality)
+      if (user && isAuthenticated) {
+        try {
+          const token = await getAccessTokenSilently();
+          await BackendService.safeSaveUserProfile(tempData, token);
+          console.log('Profile saved to backend successfully');
+        } catch (error) {
+          console.log('Backend save failed, but localStorage saved successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Failed to save profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isValidUrl = (string) => {
@@ -116,9 +194,24 @@ export default function ProfileCard() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white'
+            color: 'white',
+            overflow: 'hidden',
+            position: 'relative'
           }}>
-            <User size={24} />
+            {user?.picture ? (
+              <img 
+                src={user.picture} 
+                alt="Profile" 
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '50%'
+                }}
+              />
+            ) : (
+              <User size={24} />
+            )}
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -140,7 +233,7 @@ export default function ProfileCard() {
                     }}
                   />
                 ) : (
-                  profileData.name.value || profileData.name.placeholder
+                  profileData.name.value || user?.name || user?.nickname || profileData.name.placeholder
                 )}
               </h3>
               
@@ -208,6 +301,11 @@ export default function ProfileCard() {
             <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               Profile Settings
             </p>
+            {user?.email && (
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                {user.email}
+              </p>
+            )}
           </div>
         </div>
         
