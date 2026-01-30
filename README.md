@@ -42,8 +42,7 @@ The platform uses **React for the frontend**, **Node.js & Express for the backen
 
 ## 📂 Project Structure
 
-```
-
+```bash
 FlowAI/
 ├── frontend/
 │   ├── public/
